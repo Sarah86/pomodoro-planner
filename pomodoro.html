@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pomodoro Planner</title>
+    <style>
+      :root {
+        --primary: #e5625e;
+        --bg: #fdfdfd;
+        --text: #333;
+        --card-bg: #ffffff;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        background-color: var(--card-bg);
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+      }
+      h1 {
+        margin-bottom: 1.5rem;
+        color: var(--primary);
+      }
+      h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        color: #888;
+        font-weight: 400;
+      }
+
+      .time-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 1rem;
+      }
+      .time-group {
+        flex: 1;
+        text-align: left;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      input[type="time"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+        background: #fff;
+      }
+      input:focus {
+        border-color: var(--primary);
+        outline: none;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.1s;
+        margin-top: 10px;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+
+      .result-box {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #fff5f5;
+        border-radius: 8px;
+        border: 1px solid #ffe0e0;
+        display: none;
+      }
+      .big-number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--primary);
+        margin: 0;
+        line-height: 1;
+      }
+      .sub-text {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 15px;
+      }
+
+      .details {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 15px;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .details ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+      .details li {
+        margin-bottom: 4px;
+      }
+
+      .settings-toggle {
+        margin-top: 20px;
+        font-size: 0.85rem;
+        color: #888;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .advanced-settings {
+        display: none;
+        margin-top: 15px;
+        text-align: left;
+      }
+      .advanced-settings input {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🍅 Pomodoro Planner</h1>
+
+      <div class="time-row">
+        <div class="time-group">
+          <label for="startTime">Start Time</label>
+          <input type="time" id="startTime" required />
+        </div>
+        <div class="time-group">
+          <label for="endTime">End Time</label>
+          <input type="time" id="endTime" required />
+        </div>
+      </div>
+
+      <button onclick="calculatePomodoros()">Calculate</button>
+
+      <div id="result" class="result-box">
+        <div>You can fit</div>
+        <p class="big-number" id="pomodoroCount">0</p>
+        <div class="sub-text">Pomodoros</div>
+        <div class="details" id="breakdown"></div>
+      </div>
+
+      <div class="settings-toggle" onclick="toggleSettings()">
+        Advanced Settings
+      </div>
+      <div class="advanced-settings" id="advancedSettings">
+        <label>Work Duration (min)</label>
+        <input type="number" id="workTime" value="25" />
+        <label>Short Break (min)</label>
+        <input type="number" id="shortBreak" value="5" />
+        <label>Long Break (min)</label>
+        <input type="number" id="longBreak" value="15" />
+        <label>Pomos before Long Break</label>
+        <input type="number" id="longBreakInterval" value="4" />
+      </div>
+    </div>
+
+    <script>
+      // Set default times (current time + 2 hours) on load
+      window.onload = function () {
+        const now = new Date();
+        const twoHoursLater = new Date(now.getTime() + 120 * 60000);
+
+        document.getElementById("startTime").value = now
+          .toTimeString()
+          .substring(0, 5);
+        document.getElementById("endTime").value = twoHoursLater
+          .toTimeString()
+          .substring(0, 5);
+      };
+
+      function toggleSettings() {
+        const settings = document.getElementById("advancedSettings");
+        settings.style.display =
+          settings.style.display === "block" ? "none" : "block";
+      }
+
+      function calculatePomodoros() {
+        // 1. Get Time Inputs
+        const startStr = document.getElementById("startTime").value;
+        const endStr = document.getElementById("endTime").value;
+
+        if (!startStr || !endStr) {
+          alert("Please enter both start and end times.");
+          return;
+        }
+
+        // 2. Calculate Total Minutes available
+        const startDate = new Date(`2000-01-01T${startStr}:00`);
+        const endDate = new Date(`2000-01-01T${endStr}:00`);
+
+        let diffMs = endDate - startDate;
+
+        // Handle overnight (e.g. 23:00 to 02:00)
+        if (diffMs < 0) {
+          diffMs += 24 * 60 * 60 * 1000;
+        }
+
+        let totalMinutes = Math.floor(diffMs / 60000);
+
+        if (totalMinutes === 0) {
+          alert("Start and End times are the same!");
+          return;
+        }
+
+        // 3. Get Advanced Settings
+        const workTime = parseInt(document.getElementById("workTime").value);
+        const shortBreak = parseInt(
+          document.getElementById("shortBreak").value
+        );
+        const longBreak = parseInt(document.getElementById("longBreak").value);
+        const intervalCount = parseInt(
+          document.getElementById("longBreakInterval").value
+        );
+
+        // 4. Run Calculation Loop
+        let completedPomos = 0;
+        let currentTime = 0;
+
+        while (true) {
+          // Check if Work fits
+          if (currentTime + workTime <= totalMinutes) {
+            currentTime += workTime;
+            completedPomos++;
+
+            // Determine Break
+            let isLongBreak = completedPomos % intervalCount === 0;
+            let currentBreak = isLongBreak ? longBreak : shortBreak;
+
+            // Add Break if it fits
+            if (currentTime + currentBreak <= totalMinutes) {
+              currentTime += currentBreak;
+            } else {
+              // Break doesn't fit, stop here
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+
+        let remaining = totalMinutes - currentTime;
+
+        // 5. Display Output
+        document.getElementById("pomodoroCount").innerText = completedPomos;
+
+        let detailHtml = `
+            <ul>
+                <li><strong>Total Duration:</strong> ${Math.floor(
+                  totalMinutes / 60
+                )}h ${totalMinutes % 60}m</li>
+                <li><strong>Work Time:</strong> ${
+                  completedPomos * workTime
+                } min</li>
+                <li><strong>Break Time:</strong> ${
+                  currentTime - completedPomos * workTime
+                } min</li>
+                <li><strong>Free Time at End:</strong> ${remaining} min</li>
+            </ul>
+        `;
+
+        document.getElementById("breakdown").innerHTML = detailHtml;
+        document.getElementById("result").style.display = "block";
+      }
+    </script>
+  </body>
+</html>
