@@ -31,3 +31,7 @@ A lightweight, single-file web application designed to help you plan your produc
 ## 📝 License
 
 This project is open-source and free to use.
+
+---
+
+Created by [Sarah86](https://github.com/Sarah86)
